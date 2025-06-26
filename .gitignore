@@ -1,25 +1,38 @@
-HELP.md
+# === App Config ===
+src/main/resources/application.properties
+
+# === Maven & Build ===
 target/
-backend/.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+build/
 .apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-.idea
-*.iws
+
+# === IDEs ===
+.idea/
 *.iml
+*.iws
 *.ipr
+.classpath
+.project
+.factorypath
+.settings/
+.sts4-cache/
+.vscode/
+
+# === NetBeans ===
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
+
+# === Maven Wrapper ===
+**/mvn/wrapper/maven-wrapper.jar
+
+# === Optional exclusions (redundant patterns cleaned) ===
+HELP.md
+
+# === Do NOT ignore these (keep them in Git) ===
 !**/src/main/**/build/
 !**/src/test/**/build/
-.vscode/
+!**/src/main/**/target/
+!**/src/test/**/target/
