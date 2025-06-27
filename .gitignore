@@ -1,6 +1,6 @@
 # === App Config ===
 src/main/resources/application.properties
-
+src/testing/test.txt
 # === Maven & Build ===
 target/
 build/
