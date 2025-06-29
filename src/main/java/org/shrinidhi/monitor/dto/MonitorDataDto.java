@@ -14,7 +14,7 @@ public class MonitorDataDto {
     @NotBlank
     private String message;
 
-    private LocalDateTime timestamp; // ✅ Added field
+    private LocalDateTime timestamp; //
 
     // Getters & Setters
     public String getServiceName() {
