@@ -11,9 +11,12 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+import java.util.Set;
+
+
 
 @RestController
 @RequestMapping("/api")
@@ -34,21 +37,27 @@ public class MonitorController {
         return monitorService.processMonitorData(data);
     }
 
-    // Fetch paginated, filtered logs (now with date range support)
+    @GetMapping("/monitor/levels")
+    public Set<String> getLogLevels() {
+        return monitorService.getAllLogLevels();
+    }
+
+    @GetMapping("/monitor/services")
+    public Set<String> getServiceNames() {
+        return monitorService.getAllServiceNames();
+    }
+
+    // Fetch paginated, filtered logs with date range support and partial search
     @GetMapping("/monitor")
     public Page<MonitorData> getAllMonitorData(
             @RequestParam(required = false) String level,
             @RequestParam(required = false) String serviceName,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
             @PageableDefault(page = 0, size = 10, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return monitorService.getFilteredLogs(level, serviceName, start, end, pageable);
     }
-
-
 
     // Delete by ID
     @DeleteMapping("/monitor/{id}")
@@ -57,7 +66,7 @@ public class MonitorController {
         return ResponseEntity.noContent().build();
     }
 
-    // Bulk delete by date range
+    // Bulk delete by date range (optionally filter by level)
     @DeleteMapping("/monitor")
     public ResponseEntity<String> deleteByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,

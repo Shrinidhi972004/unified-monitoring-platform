@@ -9,6 +9,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.Objects;
 
 
 @Service
@@ -26,6 +29,21 @@ public class MonitorService {
         repository.save(entity);
         return "Received and saved data: " + data.getMessage();
     }
+    public Set<String> getAllLogLevels() {
+        return repository.findAll()
+                .stream()
+                .map(MonitorData::getLevel)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<String> getAllServiceNames() {
+        return repository.findAll()
+                .stream()
+                .map(MonitorData::getServiceName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
 
     public Page<MonitorData> getFilteredLogs(
             String level,
@@ -33,26 +51,44 @@ public class MonitorService {
             LocalDateTime start,
             LocalDateTime end,
             Pageable pageable) {
-        // If both start and end are provided, and other filters are present
-        if (start != null && end != null) {
-            if (level != null && serviceName != null) {
-                return repository.findAllByLevelAndServiceNameAndTimestampBetween(level, serviceName, start, end, pageable);
-            } else if (level != null) {
-                return repository.findAllByLevelAndTimestampBetween(level, start, end, pageable);
-            } else if (serviceName != null) {
-                return repository.findAllByServiceNameAndTimestampBetween(serviceName, start, end, pageable);
+
+        boolean hasLevel = level != null && !level.isEmpty();
+        boolean hasService = serviceName != null && !serviceName.isEmpty();
+        boolean hasStart = start != null;
+        boolean hasEnd = end != null;
+
+        // --- Date range is present ---
+        if (hasStart && hasEnd) {
+            if (hasLevel && hasService) {
+                // Partial level, partial service, date range
+                return repository.findAllByLevelContainingIgnoreCaseAndServiceNameContainingIgnoreCaseAndTimestampBetween(
+                        level, serviceName, start, end, pageable);
+            } else if (hasLevel) {
+                // Partial level, date range
+                return repository.findAllByLevelContainingIgnoreCaseAndTimestampBetween(
+                        level, start, end, pageable);
+            } else if (hasService) {
+                // Partial service, date range
+                return repository.findAllByServiceNameContainingIgnoreCaseAndTimestampBetween(
+                        serviceName, start, end, pageable);
             } else {
+                // Only date range
                 return repository.findAllByTimestampBetween(start, end, pageable);
             }
         } else {
-            // Fallback to existing logic (no date range)
-            if (level != null && serviceName != null) {
-                return repository.findAllByLevelAndServiceName(level, serviceName, pageable);
-            } else if (level != null) {
-                return repository.findAllByLevel(level, pageable);
-            } else if (serviceName != null) {
-                return repository.findAllByServiceName(serviceName, pageable);
+            // --- No date range ---
+            if (hasLevel && hasService) {
+                // Partial level, partial service
+                return repository.findAllByLevelContainingIgnoreCaseAndServiceNameContainingIgnoreCase(
+                        level, serviceName, pageable);
+            } else if (hasLevel) {
+                // Partial level
+                return repository.findAllByLevelContainingIgnoreCase(level, pageable);
+            } else if (hasService) {
+                // Partial service
+                return repository.findAllByServiceNameContainingIgnoreCase(serviceName, pageable);
             } else {
+                // No filters
                 return repository.findAll(pageable);
             }
         }
