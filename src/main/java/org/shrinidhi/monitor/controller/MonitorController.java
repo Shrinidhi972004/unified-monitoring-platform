@@ -3,6 +3,7 @@ package org.shrinidhi.monitor.controller;
 import org.shrinidhi.monitor.dto.MonitorDataDto;
 import org.shrinidhi.monitor.entity.MonitorData;
 import org.shrinidhi.monitor.service.MonitorService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
@@ -11,12 +12,13 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
-import java.util.stream.Collectors;
 import java.util.Set;
-
-
+import java.util.List;
+import java.util.Map;
+import java.util.Collections;
 
 @RestController
 @RequestMapping("/api")
@@ -25,18 +27,19 @@ public class MonitorController {
     @Autowired
     private MonitorService monitorService;
 
-    // Health check endpoint
+    // --- Health check ---
     @GetMapping("/health")
     public String healthCheck() {
         return "Monitor API is running";
     }
 
-    // Accept new monitoring data
+    // --- Ingest new monitoring data ---
     @PostMapping("/monitor")
     public String monitorData(@Valid @RequestBody MonitorDataDto data) {
         return monitorService.processMonitorData(data);
     }
 
+    // --- Dropdown filter options for the frontend ---
     @GetMapping("/monitor/levels")
     public Set<String> getLogLevels() {
         return monitorService.getAllLogLevels();
@@ -47,26 +50,48 @@ public class MonitorController {
         return monitorService.getAllServiceNames();
     }
 
-    // Fetch paginated, filtered logs with date range support and partial search
+    // --- Main log retrieval endpoint (supports all filters & pagination) ---
     @GetMapping("/monitor")
     public Page<MonitorData> getAllMonitorData(
             @RequestParam(required = false) String level,
             @RequestParam(required = false) String serviceName,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
             @PageableDefault(page = 0, size = 10, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return monitorService.getFilteredLogs(level, serviceName, start, end, pageable);
     }
 
-    // Delete by ID
+    // --- Dashboard APIs ---
+
+    // Total log count
+    @GetMapping("/monitor/count")
+    public Map<String, Long> getTotalLogCount() {
+        long count = monitorService.getTotalLogCount();
+        return Collections.singletonMap("count", count);
+    }
+
+    // Log count grouped by service
+    @GetMapping("/monitor/count/services")
+    public List<Map<String, Object>> getLogCountByService() {
+        return monitorService.getLogCountByService();
+    }
+
+    // Log count grouped by level
+    @GetMapping("/monitor/count/levels")
+    public List<Map<String, Object>> getLogCountByLevel() {
+        return monitorService.getLogCountByLevel();
+    }
+
+    // --- Deletion APIs ---
     @DeleteMapping("/monitor/{id}")
     public ResponseEntity<Void> deleteById(@PathVariable Long id) {
         monitorService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Bulk delete by date range (optionally filter by level)
     @DeleteMapping("/monitor")
     public ResponseEntity<String> deleteByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,

@@ -3,16 +3,20 @@ package org.shrinidhi.monitor.service;
 import org.shrinidhi.monitor.dto.MonitorDataDto;
 import org.shrinidhi.monitor.entity.MonitorData;
 import org.shrinidhi.monitor.repository.MonitorDataRepository;
+import org.shrinidhi.monitor.repository.ServiceCountProjection;
+import org.shrinidhi.monitor.repository.LevelCountProjection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import java.time.LocalDateTime;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.Objects;
 
+import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class MonitorService {
@@ -29,6 +33,8 @@ public class MonitorService {
         repository.save(entity);
         return "Received and saved data: " + data.getMessage();
     }
+
+    // For dropdowns
     public Set<String> getAllLogLevels() {
         return repository.findAll()
                 .stream()
@@ -57,38 +63,28 @@ public class MonitorService {
         boolean hasStart = start != null;
         boolean hasEnd = end != null;
 
-        // --- Date range is present ---
         if (hasStart && hasEnd) {
             if (hasLevel && hasService) {
-                // Partial level, partial service, date range
                 return repository.findAllByLevelContainingIgnoreCaseAndServiceNameContainingIgnoreCaseAndTimestampBetween(
                         level, serviceName, start, end, pageable);
             } else if (hasLevel) {
-                // Partial level, date range
                 return repository.findAllByLevelContainingIgnoreCaseAndTimestampBetween(
                         level, start, end, pageable);
             } else if (hasService) {
-                // Partial service, date range
                 return repository.findAllByServiceNameContainingIgnoreCaseAndTimestampBetween(
                         serviceName, start, end, pageable);
             } else {
-                // Only date range
                 return repository.findAllByTimestampBetween(start, end, pageable);
             }
         } else {
-            // --- No date range ---
             if (hasLevel && hasService) {
-                // Partial level, partial service
                 return repository.findAllByLevelContainingIgnoreCaseAndServiceNameContainingIgnoreCase(
                         level, serviceName, pageable);
             } else if (hasLevel) {
-                // Partial level
                 return repository.findAllByLevelContainingIgnoreCase(level, pageable);
             } else if (hasService) {
-                // Partial service
                 return repository.findAllByServiceNameContainingIgnoreCase(serviceName, pageable);
             } else {
-                // No filters
                 return repository.findAll(pageable);
             }
         }
@@ -106,5 +102,35 @@ public class MonitorService {
     @Transactional
     public long deleteByLevelAndTimestampBetween(String level, LocalDateTime start, LocalDateTime end) {
         return repository.deleteByLevelAndTimestampBetween(level, start, end);
+    }
+
+    // Dashboard methods
+
+    public long getTotalLogCount() {
+        return repository.count();
+    }
+
+    public List<Map<String, Object>> getLogCountByService() {
+        List<ServiceCountProjection> projectionList = repository.countGroupByService();
+        return projectionList.stream()
+                .map(proj -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("serviceName", proj.getServiceName());
+                    map.put("count", proj.getCount());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<Map<String, Object>> getLogCountByLevel() {
+        List<LevelCountProjection> projectionList = repository.countGroupByLevel();
+        return projectionList.stream()
+                .map(proj -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("level", proj.getLevel());
+                    map.put("count", proj.getCount());
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 }
