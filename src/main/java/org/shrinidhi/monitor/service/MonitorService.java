@@ -2,7 +2,9 @@ package org.shrinidhi.monitor.service;
 
 import org.shrinidhi.monitor.dto.MonitorDataDto;
 import org.shrinidhi.monitor.entity.MonitorData;
+import org.shrinidhi.monitor.entity.Alert;
 import org.shrinidhi.monitor.repository.MonitorDataRepository;
+import org.shrinidhi.monitor.repository.AlertRepository;
 import org.shrinidhi.monitor.repository.ServiceCountProjection;
 import org.shrinidhi.monitor.repository.LevelCountProjection;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,9 @@ public class MonitorService {
     @Autowired
     private MonitorDataRepository repository;
 
+    @Autowired
+    private AlertRepository alertRepository;
+
     public String processMonitorData(MonitorDataDto data) {
         MonitorData entity = new MonitorData();
         entity.setServiceName(data.getServiceName());
@@ -31,6 +36,15 @@ public class MonitorService {
         entity.setMessage(data.getMessage());
         entity.setTimestamp(data.getTimestamp());
         repository.save(entity);
+
+        // --- Alert generation ---
+        String level = data.getLevel();
+        if (level != null && ("ERROR".equalsIgnoreCase(level) || "WARN".equalsIgnoreCase(level))) {
+            String alertMsg = "New " + level.toUpperCase() + " from " + data.getServiceName() + ": " + data.getMessage();
+            Alert alert = new Alert(alertMsg, level, data.getServiceName());
+            alertRepository.save(alert);
+        }
+
         return "Received and saved data: " + data.getMessage();
     }
 
