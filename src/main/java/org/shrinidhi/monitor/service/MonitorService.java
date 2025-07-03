@@ -39,7 +39,7 @@ public class MonitorService {
 
         // --- Alert generation ---
         String level = data.getLevel();
-        if (level != null && ("ERROR".equalsIgnoreCase(level) || "WARN".equalsIgnoreCase(level))) {
+        if (level != null && !level.isEmpty()) {
             String alertMsg = "New " + level.toUpperCase() + " from " + data.getServiceName() + ": " + data.getMessage();
             Alert alert = new Alert(alertMsg, level, data.getServiceName());
             alertRepository.save(alert);
@@ -48,7 +48,7 @@ public class MonitorService {
         return "Received and saved data: " + data.getMessage();
     }
 
-    // For dropdowns
+        // For dropdowns
     public Set<String> getAllLogLevels() {
         return repository.findAll()
                 .stream()
